@@ -33,7 +33,7 @@ SimPars.specband = [0 5];           %Spectral band to consider for concatenating
 
 
 SimPars.amp = 1;                    % Relative amplitude
-SimPars.lw = 15;                    % Linewidth (in Hz) must be larger than spectral linewidth ( = 4 Hz)
+SimPars.lw = 10;                    % Linewidth (in Hz) must be larger than spectral linewidth ( = 4 Hz)
 SimPars.lw = SimPars.lw - all_data{1,1}.master_data.handles.SpectralLineWidth;
 
 SimPars.T2 = 1/(pi*SimPars.lw);     % T2* relaxation constant (in sec)
@@ -41,30 +41,31 @@ SimPars.R2 = -1/SimPars.T2;         % R2* relaxation rate (in Hz)
 
 % SimPars.lw2 = 4;                    % Linewidth in second dimension (Hz)
 % SimPars.T2_2 = 1/(pi*SimPars.lw2);  % T2 relaxation in second dimension
-SimPars.T2_2 = 1.18;
+SimPars.T2_2 = 0.18;
 SimPars.R2_2 = 1/SimPars.T2_2;      % R2 relaxation rate (in Hz)
 
 
 SimPars.TE1_values = size(all_data{1,1}.master_data.TE1_array,2);
 SimPars.TE2_values = size(all_data{1,1}.master_data.TE2_array,2);
 
-noise_sw = 0.008;                          % Noise level per sqrt(spectral width)
-SimPars.noise = noise_sw*sqrt(SimPars.sw);  % FID noise level
-
+% Set noise to match SNR ≈ 9.96 in single-TE case
 
 SimPars.ConcName = {'Glu','Gln'};
-SimPars.Conc = [1 1];
+SimPars.Conc = [1 0.3];
 SimPars.ncompounds = 2;
 
 
 numspec = 4;        % number of spectra to concatenate
- TE1_indx = [5,7,9,11];     % make sure number of indices in here match numspec
- TE2_indx = [11,13,15,17];     % make sure number of indices in here match numspec
+ TE1_indx = [5,5,5,5];     % make sure number of indices in here match numspec
+ TE2_indx = [1,1,1,1];     % make sure number of indices in here match numspec
 
 %TE1_indx = [20 20 20 20];     % make sure number of indices in here match numspec
 %TE2_indx = [20 20 20 20];
 
-SimPars.noise = SimPars.noise/sqrt(numspec);
+%SimPars.noise = SimPars.noise/sqrt(numspec);
+noise_sw = 0.0045;
+SimPars.noise_single = noise_sw * sqrt(SimPars.sw);    % gives ~SNR = 9.96 in single-TE
+SimPars.noise = SimPars.noise_single * sqrt(numspec);  % adjust for fixed scan time (√4 = 2)
 
 SpecAll = zeros(npoints, SimPars.TE1_values,SimPars.TE2_values,SimPars.ncompounds);
 SpecAll_with_noise = zeros(npoints, SimPars.TE1_values,SimPars.TE2_values,SimPars.ncompounds);
@@ -292,43 +293,43 @@ disp(['SNR (Glutamine) = ' num2str(SNR_Gln)]);
 disp('-------------------------------------------');
 
 % Labels for all evaluated TE sets
-sets = {'Set A', 'Set B', 'Set C', 'Set D', 'Set E', 'Set F', 'Set G', 'Set H', 'Set I'};
+sets = {'Set A', 'Set B', 'Set C', 'Set D', 'Set E', 'Set F', 'Set G', 'Set H', 'Set I', 'Set J', 'E rvs', 'J rvs'};
 
 % ----- CRLB Data -----
-crlb_glu  = [2.59, 2.81, 2.92, 1.91, 0.99, 2.55, 2.67, 2.70, 2.42];  % Glu CRLB
-crlb_gln  = [3.11, 2.89, 2.86, 2.60, 1.05, 3.23, 3.10, 3.44, 2.87];  % Gln CRLB
+crlb_glu  = [7.24, 7.46, 8.23, 5.06, 2.29, 6.98, 7.41, 4.3, 6.57, 2.24, 2.08, 2.03];  % Glu CRLB
+crlb_gln  = [28.23, 25.93, 26.76, 22.67, 8.18, 28.31, 27.86, 17.78, 25.51, 7.97, 7.32, 7.06];  % Gln CRLB
 
 % ----- Monte Carlo CV Data -----
-cv_glu    = [5.23, 6.14, 5.68, 3.30, 1.58, 4.53, 5.33, 5.44, 4.88];  % Glu CV%
-cv_gln    = [7.31, 5.57, 6.35, 4.51, 1.63, 6.34, 6.24, 5.54, 5.75];  % Gln CV%
+cv_glu    = [2.83, 11.4, 11.75, 7.1, 3.68, 11, 10.35, 6.04, 9.29, 3.35, 3.23, 2.89];  % Glu CV%
+cv_gln    = [0.99, 124.93, 123.31, 89, 43.24, 123.8, 118.37, 67.89, 141.93, 36.11, 33.97, 30.32];  % Gln CV%
 
 % ----- SNR Data -----
-snr_glu   = [4.96, 4.44, 6.40, 5.72, 10.95, 1.40, 2.87, 2.88, 1.39]; % Glu SNR
-snr_gln   = [2.61, 3.99, 1.50, 4.58, 8.05, 2.13, 1.42, 2.22, 1.00];  % Gln SNR
+snr_glu   = [2.83, 3.12, 3.05, 2.23, 5.86, 2.87, 3.41, 6.14, 1.89, 5.52, 5.91, 9.211]; % Glu SNR
+snr_gln   = [0.97, 1.42, 1.93, 1.46, 2.84, 2.56, 1.77, 2.49, 1.26, 2.11, 2.76, 2.08];  % Gln SNR
 
 % ----- Plot CRLB -----
 figure;
 bar([crlb_glu; crlb_gln]', 'grouped');
-title('CRLB Comparison for All TE Combinations');
-ylabel('CRLB (%)');
-set(gca, 'XTickLabel', sets, 'FontSize', 12);
-legend('Glu', 'Gln', 'Location', 'northeast');
+title('CRLB Comparison for All TE Combinations', 'FontSize', 16, 'FontWeight', 'bold');
+ylabel('CRLB (%)', 'FontSize', 16);
+set(gca, 'XTickLabel', sets, 'FontSize', 16,'XTickLabelRotation', 45);
+legend({'Glu', 'Gln'}, 'Location', 'northeast', 'FontSize', 18);
 grid on;
 
 % ----- Plot Monte Carlo CV -----
 figure;
 bar([cv_glu; cv_gln]', 'grouped');
-title('Monte Carlo CV (%) for All TE Combinations');
-ylabel('Coefficient of Variation (%)');
-set(gca, 'XTickLabel', sets, 'FontSize', 12);
-legend('Glu', 'Gln', 'Location', 'northeast');
+title('Monte Carlo CV (%) for All TE Combinations', 'FontSize', 16, 'FontWeight', 'bold');
+ylabel('Coefficient of Variation (%)', 'FontSize', 16);
+set(gca, 'XTickLabel', sets, 'FontSize', 16, 'XTickLabelRotation', 45);
+legend({'Glu', 'Gln'}, 'Location', 'northeast', 'FontSize', 18);
 grid on;
 
 % ----- Plot SNR -----
 figure;
 bar([snr_glu; snr_gln]', 'grouped');
-title('SNR Comparison for All TE Combinations');
-ylabel('Signal-to-Noise Ratio');
-set(gca, 'XTickLabel', sets, 'FontSize', 12);
-legend('Glu', 'Gln', 'Location', 'northeast');
+title('SNR Comparison for All TE Combinations', 'FontSize', 16, 'FontWeight', 'bold');
+ylabel('Signal-to-Noise Ratio', 'FontSize', 16);
+set(gca, 'XTickLabel', sets, 'FontSize', 16, 'XTickLabelRotation', 45);
+legend({'Glu', 'Gln'}, 'Location', 'northeast', 'FontSize', 18);
 grid on;

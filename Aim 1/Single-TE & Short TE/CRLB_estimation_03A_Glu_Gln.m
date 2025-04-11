@@ -26,6 +26,8 @@ SimPars.dt = 1/SimPars.sw;          % Dwell time (s)
 SimPars.npzf = npoints;                % Number of spectral points
 SimPars.np = npoints;                % Number of spectral points
 
+SimPars.specband = [0 5];           %Spectral band to consider 
+
 SimPars.amp = 1;                    % Relative amplitude
 SimPars.lw = 10;                    % Linewidth (in Hz) must be larger than spectral linewidth ( = 4 Hz)
 SimPars.lw = SimPars.lw - all_data{1,1}.master_data.handles.SpectralLineWidth;
@@ -40,6 +42,7 @@ SimPars.R2_2 = 1/SimPars.T2_2;      % R2 relaxation rate (in Hz)
 
 SimPars.TE1_values = size(all_data{1,1}.master_data.TE1_array,2);
 SimPars.TE2_values = size(all_data{1,1}.master_data.TE2_array,2);
+
 
 noise_sw = 0.0045;                          % Noise level per sqrt(spectral width)
 SimPars.noise = noise_sw*sqrt(SimPars.sw);  % FID noise level
@@ -86,8 +89,14 @@ TE1_array = all_data{1,1}.master_data.TE1_array;
 TE2_array = all_data{1,1}.master_data.TE2_array;
 num_TE1_values = size(TE1_array,2);
 
-TE1_indx = 17;
-TE2_indx = 17;
+% TE1_indx = 6; % SINGLE TE (35ms)
+% TE2_indx = 6;
+
+%TE1_indx = 1; % SHORT TE (10ms)
+% TE2_indx = 1;
+
+TE1_indx = 8; % SHORT TE (20ms)
+TE2_indx = 8;
 
 TE1 = TE1_array(1, TE1_indx);
 
@@ -105,7 +114,13 @@ hold on; plot(freq, real(fftshift(fft(squeeze(Specs_with_noise(:,1))))));     %p
 hold on; plot(freq, real(fftshift(fft(squeeze(Specs_with_noise(:,2))))));     %plot Glutamate
 set(gca, 'XDir', 'reverse'); xlim ([0 5]);
 legend('Glu', 'Gln');
-title(['TE1 = ' num2str(TE1) 'ms, TE2 = ' num2str(TE2) 'ms, TE = ' num2str(TE) 'ms.']);
+title(['TE1 = ' num2str(TE1) 'ms, TE2 = ' num2str(TE2) 'ms, TE = ' num2str(TE) 'ms.'], 18);
+
+% Adjust font sizes for better readability
+set(gca, 'FontSize', 16);           % Axis tick labels
+xlabel('ppm', 'FontSize', 18);      % X-axis label
+ylabel('Signal Intensity', 'FontSize', 18); % Y-axis label
+legend('Glu', 'Gln', 'FontSize', 20); % Legend font size
 
 D = zeros(SimPars.np,2*SimPars.ncompounds);
 for comp =1: SimPars.ncompounds
@@ -151,14 +166,34 @@ noise_window = freq > 5;
 signal_window_glu = (freq > ppm_low(1,1)) & (freq < ppm_hi(1,1));
 signal_window_gln = (freq > ppm_low(1,2)) & (freq < ppm_hi(1,2));
 
-% --- SNR Calculation ---
-max_signal_glu = max(spec_fft_glu(signal_window_glu));
-max_signal_gln = max(spec_fft_gln(signal_window_gln));
-noise_std = std(spec_fft_glu(noise_window));  % Assuming same noise for both
+%% --- SNR Calculation (restricted to 0–5 ppm) ---
 
+% FFT of spectra
+spec_fft_glu = real(fftshift(fft(Specs_with_noise(:,1))));
+spec_fft_gln = real(fftshift(fft(Specs_with_noise(:,2))));
+
+% Restrict frequency range to 0–5 ppm
+spec_span = find(freq > SimPars.specband(1) & freq < SimPars.specband(2));
+freq_trimmed = freq(spec_span);
+spec_fft_glu_trimmed = spec_fft_glu(spec_span);
+spec_fft_gln_trimmed = spec_fft_gln(spec_span);
+
+% Define signal and noise windows within the 0–5 ppm range
+signal_window_glu = (freq_trimmed > 2.25) & (freq_trimmed < 2.35);  % Glu H4
+signal_window_gln = (freq_trimmed > 2.35) & (freq_trimmed < 2.45);  % Gln H4
+noise_window = (freq_trimmed > 4.9);  % baseline near 5 ppm
+
+% Calculate signal and noise
+max_signal_glu = max(abs(spec_fft_glu_trimmed(signal_window_glu)));
+max_signal_gln = max(abs(spec_fft_gln_trimmed(signal_window_gln)));
+noise_std = std(spec_fft_glu_trimmed(noise_window));  % assume same baseline noise for both
+
+% Compute SNR
 SNR_glu = max_signal_glu / noise_std;
 SNR_gln = max_signal_gln / noise_std;
 
-disp(['Glu SNR = ' num2str(SNR_glu)]);
-disp(['Gln SNR = ' num2str(SNR_gln)]);
-
+% Display results
+disp('-------------------------------------------');
+disp(['SNR (Glutamate) = ' num2str(SNR_glu)]);
+disp(['SNR (Glutamine) = ' num2str(SNR_gln)]);
+disp('-------------------------------------------');
