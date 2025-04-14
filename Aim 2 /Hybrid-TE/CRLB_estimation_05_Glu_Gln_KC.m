@@ -327,22 +327,22 @@ sets = {'Set A', 'Set B', 'Set C', 'Set D', 'Set E', 'Set F', 'Set G', ...
          'Set H', 'Set I', 'Set J', 'Set K', 'Set L'};
 
 % ----- Updated CRLB Data -----
-crlb_glu  = [7.24, 7.46, 8.23, 5.06, 2.29, 6.98, 7.41, 4.3, 6.57, 2.24, 2.08, 2.03];  % Glu CRLB (%)
-crlb_gln  = [28.23, 25.93, 26.76, 22.67, 8.18, 28.31, 27.86, 17.78, 25.51, 7.97, 7.32, 7.06];  % Gln CRLB (%)
+crlb_glu  = [7.24, 7.46, 8.23, 5.06, 2.29, 6.98, 7.41, 4.30, 6.57, 2.24, 2.08, 2.03];  % Glu CRLB
+crlb_gln  = [28.23, 25.93, 26.76, 22.67, 8.18, 28.31, 27.86, 17.78, 25.51, 7.97, 7.32, 7.06];  % Gln CRLB
 
-% ----- Updated Monte Carlo CV Data -----
-cv_glu    = [6.36, 6.55, 8.67, 5.35, 2.43, 6.3, 7.75, 4.16, 7.13, 2.62, 2.01, 2.54];  % Glu CV (%)
-cv_gln    = [77.05, 81.82, 64.17, 65.62, 28.07, 88.97, 78.61, 55.03, 73.52, 33.29, 23.64, 31.13];  % Gln CV (%)
+% ----- Updated Monte Carlo CV Data (no percent signs) -----
+cv_glu    = [7.40, 7.28, 7.40, 5.39, 2.25, 6.92, 7.49, 4.74, 6.94, 2.45, 2.00, 2.31];  % Glu CV
+cv_gln    = [24.07, 24.27, 24.36, 22.87, 8.29, 23.61, 23.63, 20.00, 24.76, 8.99, 7.55, 8.15];  % Gln CV
 
 % ----- Updated SNR Data -----
-snr_glu   = [2.83, 3.12, 1.887, 3.44, 5.6, 2.14, 1.52, 4.49, 1.93, 6.37, 9.13, 6.17]; % Glu SNR
-snr_gln   = [1.2, 3.26, 1.49, 1.3, 1.94, 2.82, 1.62, 1.48, 2.32, 1.72, 4.7, 2.31];    % Gln SNR
+snr_glu   = [2.26, 1.70, 3.71, 3.05, 4.58, 0.80, 2.54, 5.79, 0.95, 5.69, 7.67, 6.81]; % Glu SNR
+snr_gln   = [2.79, 2.22, 2.22, 1.05, 1.54, 2.04, 1.81, 2.03, 0.96, 1.85, 3.27, 2.70];  % Gln SNR
 
 % ----- Plot CRLB -----
 figure;
 bar([crlb_glu; crlb_gln]', 'grouped');
 title('CRLB Comparison for All TE Combinations', 'FontSize', 16, 'FontWeight', 'bold');
-ylabel('CRLB (%)', 'FontSize', 16);
+ylabel('CRLB', 'FontSize', 16);
 set(gca, 'XTickLabel', sets, 'FontSize', 14, 'XTickLabelRotation', 45);
 legend({'Glu', 'Gln'}, 'Location', 'northeast', 'FontSize', 14);
 grid on;
@@ -350,8 +350,8 @@ grid on;
 % ----- Plot Monte Carlo CV -----
 figure;
 bar([cv_glu; cv_gln]', 'grouped');
-title('Monte Carlo CV (%) for All TE Combinations', 'FontSize', 16, 'FontWeight', 'bold');
-ylabel('Coefficient of Variation (%)', 'FontSize', 16);
+title('Monte Carlo Coefficient of Variation for All TE Combinations', 'FontSize', 16, 'FontWeight', 'bold');
+ylabel('Coefficient of Variation', 'FontSize', 16);
 set(gca, 'XTickLabel', sets, 'FontSize', 14, 'XTickLabelRotation', 45);
 legend({'Glu', 'Gln'}, 'Location', 'northeast', 'FontSize', 14);
 grid on;
