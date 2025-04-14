@@ -1,6 +1,5 @@
 % CRLB_estimation_05_Glu_Gln.m setup code for concatenated spectral fit, in
 % 04, add monte carlo simulations
-
 % Chathu 2025 March 10th University of Calgary
 % Version 1
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -56,11 +55,11 @@ SimPars.ncompounds = 2;
 
 
 numspec = 4;        % number of spectra to concatenate
- TE1_indx = [5,5,5,5];     % make sure number of indices in here match numspec
- TE2_indx = [1,1,1,1];     % make sure number of indices in here match numspec
+% TE1_indx = [5 7 9 11];     % make sure number of indices in here match numspec
+% TE2_indx = [17 19 13 15];     % make sure number of indices in here match numspec
 
-%TE1_indx = [20 20 20 20];     % make sure number of indices in here match numspec
-%TE2_indx = [20 20 20 20];
+TE1_indx = [5,5,5,5];     % make sure number of indices in here match numspec
+TE2_indx = [1,1,1,1];
 
 %SimPars.noise = SimPars.noise/sqrt(numspec);
 noise_sw = 0.0045;
@@ -228,38 +227,69 @@ disp(['Gln CRLB =' num2str(CRLBamp1D(2,1,1)) '%']);
 
 %% do lsqcurve fit based monte-carlo simulation to estimate coefficient of variance
 
+%% Monte Carlo simulation to estimate coefficient of variation (CV) using complex fit
+%% Monte Carlo simulation using real-valued residuals from complex FID
+
 num_reps = 100;
-x0 = [0.9, 0.9];     % Initial guess for parameters [amplitude1, amplitude2, offset]
+x0 = [0, 0.0];           % Initial guess: [Glu_amp, Gln_amp]
+lb = [0, 0];
+ub = [10, 10];
 
-MCarlo_results = zeros(num_reps, size(x0,2));
+MCarlo_results = zeros(num_reps, length(x0));
 
+% Noiseless FIDs
 Glu_FID_no_noise_conc = ifft(ifftshift(Glu_Specs_no_noise_concat));
 Gln_FID_no_noise_conc = ifft(ifftshift(Gln_Specs_no_noise_concat));
+
+% Stack real and imaginary parts into a real-valued residual vector
+stacked_model_func = @(x) [ ...
+    real(x(1)*Glu_FID_no_noise_conc + x(2)*Gln_FID_no_noise_conc), ...
+    imag(x(1)*Glu_FID_no_noise_conc + x(2)*Gln_FID_no_noise_conc) ...
+];
+
 for rep_indx = 1:num_reps
-    
-%    noisy_spec =  fftshift(fft(SimPars.Conc(1,1).*Glu_FID_no_noise_conc + SimPars.Conc(1,2).*Gln_FID_no_noise_conc + (SimPars.noise*randn(1, new_points) + 1i*SimPars.noise*randn(1, new_points))));
-   noisy_fid =  SimPars.Conc(1,1).*Glu_FID_no_noise_conc + SimPars.Conc(1,2).*Gln_FID_no_noise_conc + (SimPars.noise*randn(1, new_points) + 1i*SimPars.noise*randn(1, new_points));
-   
-   model_func = @(x, xdata) x(1) * real(Glu_FID_no_noise_conc) + x(2) * real(Gln_FID_no_noise_conc); % Amplitudes1*signal1 + Amplitude2*signal2
-   options = optimoptions('lsqcurvefit', 'Display', 'off');
-   x_opt = lsqcurvefit(model_func, x0, [], real(noisy_fid), [], [], options);
-   MCarlo_results(rep_indx,:) = x_opt; 
+    % Generate complex noisy signal
+    noisy_fid = SimPars.Conc(1,1)*Glu_FID_no_noise_conc + ...
+                SimPars.Conc(1,2)*Gln_FID_no_noise_conc + ...
+                SimPars.noise*(randn(1, new_points) + 1i*randn(1, new_points));
+
+    % Stack real and imaginary parts of the noisy FID
+    ydata = [real(noisy_fid), imag(noisy_fid)];
+
+    % Objective function returning residuals
+    obj_fun = @(x, xdata) stacked_model_func(x);
+
+    % Fit using lsqcurvefit
+    try
+        x_opt = lsqcurvefit(@(x, ~) obj_fun(x, []), x0, [], ydata, lb, ub, ...
+                            optimoptions('lsqcurvefit','Display','off'));
+    catch
+        warning(['Fit failed at iteration ' num2str(rep_indx)]);
+        x_opt = [NaN, NaN];
+    end
+
+    MCarlo_results(rep_indx,:) = x_opt;
+
+    % Optional: Track if unstable
+    if any(isnan(x_opt)) || any(x_opt < 0)
+        disp(['Unstable fit at rep ' num2str(rep_indx) ': ' num2str(x_opt)]);
+    end
 end
 
-Glu_mean = mean(MCarlo_results(:,1));
-Gln_mean = mean(MCarlo_results(:,2));
+% Clean results
+valid_idx = all(~isnan(MCarlo_results), 2);
+valid_results = MCarlo_results(valid_idx, :);
 
+Glu_mean = mean(valid_results(:,1));
+Gln_mean = mean(valid_results(:,2));
 
-Glu_CV = std(MCarlo_results(:,1))./Glu_mean*100;
+Glu_CV = std(valid_results(:,1))  * 100;
+Gln_CV = std(valid_results(:,2)) * 100;
 
-Gln_CV = std(MCarlo_results(:,2))./Gln_mean*100;
-
-
-disp('Monte Carlo simulation results:');
+disp('Monte Carlo simulation results (real-valued residuals from complex FID):');
 disp(['Glutamate concentrations = ' num2str(Glu_mean) ' +/- ' num2str(Glu_CV) '%']);
 disp(['Glutamine concentrations = ' num2str(Gln_mean) ' +/- ' num2str(Gln_CV) '%']);
 disp('-------------------------------------------');
-
 % ----- SNR CALCULATION -----
 % Define ppm axis for full concatenated spectrum
 ppm_axis = new_freq;
@@ -293,27 +323,28 @@ disp(['SNR (Glutamine) = ' num2str(SNR_Gln)]);
 disp('-------------------------------------------');
 
 % Labels for all evaluated TE sets
-sets = {'Set A', 'Set B', 'Set C', 'Set D', 'Set E', 'Set F', 'Set G', 'Set H', 'Set I', 'Set J', 'E rvs', 'J rvs'};
+sets = {'Set A', 'Set B', 'Set C', 'Set D', 'Set E', 'Set F', 'Set G', ...
+         'Set H', 'Set I', 'Set J', 'Set K', 'Set L'};
 
-% ----- CRLB Data -----
-crlb_glu  = [7.24, 7.46, 8.23, 5.06, 2.29, 6.98, 7.41, 4.3, 6.57, 2.24, 2.08, 2.03];  % Glu CRLB
-crlb_gln  = [28.23, 25.93, 26.76, 22.67, 8.18, 28.31, 27.86, 17.78, 25.51, 7.97, 7.32, 7.06];  % Gln CRLB
+% ----- Updated CRLB Data -----
+crlb_glu  = [7.24, 7.46, 8.23, 5.06, 2.29, 6.98, 7.41, 4.3, 6.57, 2.24, 2.08, 2.03];  % Glu CRLB (%)
+crlb_gln  = [28.23, 25.93, 26.76, 22.67, 8.18, 28.31, 27.86, 17.78, 25.51, 7.97, 7.32, 7.06];  % Gln CRLB (%)
 
-% ----- Monte Carlo CV Data -----
-cv_glu    = [2.83, 11.4, 11.75, 7.1, 3.68, 11, 10.35, 6.04, 9.29, 3.35, 3.23, 2.89];  % Glu CV%
-cv_gln    = [0.99, 124.93, 123.31, 89, 43.24, 123.8, 118.37, 67.89, 141.93, 36.11, 33.97, 30.32];  % Gln CV%
+% ----- Updated Monte Carlo CV Data -----
+cv_glu    = [6.36, 6.55, 8.67, 5.35, 2.43, 6.3, 7.75, 4.16, 7.13, 2.62, 2.01, 2.54];  % Glu CV (%)
+cv_gln    = [77.05, 81.82, 64.17, 65.62, 28.07, 88.97, 78.61, 55.03, 73.52, 33.29, 23.64, 31.13];  % Gln CV (%)
 
-% ----- SNR Data -----
-snr_glu   = [2.83, 3.12, 3.05, 2.23, 5.86, 2.87, 3.41, 6.14, 1.89, 5.52, 5.91, 9.211]; % Glu SNR
-snr_gln   = [0.97, 1.42, 1.93, 1.46, 2.84, 2.56, 1.77, 2.49, 1.26, 2.11, 2.76, 2.08];  % Gln SNR
+% ----- Updated SNR Data -----
+snr_glu   = [2.83, 3.12, 1.887, 3.44, 5.6, 2.14, 1.52, 4.49, 1.93, 6.37, 9.13, 6.17]; % Glu SNR
+snr_gln   = [1.2, 3.26, 1.49, 1.3, 1.94, 2.82, 1.62, 1.48, 2.32, 1.72, 4.7, 2.31];    % Gln SNR
 
 % ----- Plot CRLB -----
 figure;
 bar([crlb_glu; crlb_gln]', 'grouped');
 title('CRLB Comparison for All TE Combinations', 'FontSize', 16, 'FontWeight', 'bold');
 ylabel('CRLB (%)', 'FontSize', 16);
-set(gca, 'XTickLabel', sets, 'FontSize', 16,'XTickLabelRotation', 45);
-legend({'Glu', 'Gln'}, 'Location', 'northeast', 'FontSize', 18);
+set(gca, 'XTickLabel', sets, 'FontSize', 14, 'XTickLabelRotation', 45);
+legend({'Glu', 'Gln'}, 'Location', 'northeast', 'FontSize', 14);
 grid on;
 
 % ----- Plot Monte Carlo CV -----
@@ -321,8 +352,8 @@ figure;
 bar([cv_glu; cv_gln]', 'grouped');
 title('Monte Carlo CV (%) for All TE Combinations', 'FontSize', 16, 'FontWeight', 'bold');
 ylabel('Coefficient of Variation (%)', 'FontSize', 16);
-set(gca, 'XTickLabel', sets, 'FontSize', 16, 'XTickLabelRotation', 45);
-legend({'Glu', 'Gln'}, 'Location', 'northeast', 'FontSize', 18);
+set(gca, 'XTickLabel', sets, 'FontSize', 14, 'XTickLabelRotation', 45);
+legend({'Glu', 'Gln'}, 'Location', 'northeast', 'FontSize', 14);
 grid on;
 
 % ----- Plot SNR -----
@@ -330,6 +361,6 @@ figure;
 bar([snr_glu; snr_gln]', 'grouped');
 title('SNR Comparison for All TE Combinations', 'FontSize', 16, 'FontWeight', 'bold');
 ylabel('Signal-to-Noise Ratio', 'FontSize', 16);
-set(gca, 'XTickLabel', sets, 'FontSize', 16, 'XTickLabelRotation', 45);
-legend({'Glu', 'Gln'}, 'Location', 'northeast', 'FontSize', 18);
+set(gca, 'XTickLabel', sets, 'FontSize', 14, 'XTickLabelRotation', 45);
+legend({'Glu', 'Gln'}, 'Location', 'northeast', 'FontSize', 14);
 grid on;
