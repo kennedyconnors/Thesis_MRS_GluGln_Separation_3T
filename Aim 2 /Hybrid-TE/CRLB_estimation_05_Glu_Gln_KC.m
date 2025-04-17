@@ -58,11 +58,11 @@ numspec = 4;        % number of spectra to concatenate
 % TE1_indx = [5 7 9 11];     % make sure number of indices in here match numspec
 % TE2_indx = [17 19 13 15];     % make sure number of indices in here match numspec
 
-TE1_indx = [5,5,5,5];     % make sure number of indices in here match numspec
-TE2_indx = [1,1,1,1];
+TE1_indx = [5,7,9,11];     % make sure number of indices in here match numspec
+TE2_indx = [17,19,13,15];
 
 %SimPars.noise = SimPars.noise/sqrt(numspec);
-noise_sw = 0.0045;
+noise_sw = 0.015;
 SimPars.noise_single = noise_sw * sqrt(SimPars.sw);    % gives ~SNR = 9.96 in single-TE
 SimPars.noise = SimPars.noise_single * sqrt(numspec);  % adjust for fixed scan time (√4 = 2)
 
@@ -321,28 +321,27 @@ disp('-------------------------------------------');
 disp(['SNR (Glutamate) = ' num2str(SNR_Glu)]);
 disp(['SNR (Glutamine) = ' num2str(SNR_Gln)]);
 disp('-------------------------------------------');
-
 % Labels for all evaluated TE sets
 sets = {'Set A', 'Set B', 'Set C', 'Set D', 'Set E', 'Set F', 'Set G', ...
          'Set H', 'Set I', 'Set J', 'Set K', 'Set L'};
 
 % ----- Updated CRLB Data -----
-crlb_glu  = [7.24, 7.46, 8.23, 5.06, 2.29, 6.98, 7.41, 4.30, 6.57, 2.24, 2.08, 2.03];  % Glu CRLB
-crlb_gln  = [28.23, 25.93, 26.76, 22.67, 8.18, 28.31, 27.86, 17.78, 25.51, 7.97, 7.32, 7.06];  % Gln CRLB
+crlb_glu  = [24.14, 24.86, 27.42, 16.86, 7.65, 23.26, 24.70, 14.32, 21.89, 7.48, 6.96, 6.76];  % Glu CRLB
+crlb_gln  = [94.09, 86.43, 89.19, 75.57, 27.27, 94.38, 92.88, 59.27, 85.03, 26.57, 24.40, 23.53];  % Gln CRLB
 
-% ----- Updated Monte Carlo CV Data (no percent signs) -----
-cv_glu    = [7.40, 7.28, 7.40, 5.39, 2.25, 6.92, 7.49, 4.74, 6.94, 2.45, 2.00, 2.31];  % Glu CV
-cv_gln    = [24.07, 24.27, 24.36, 22.87, 8.29, 23.61, 23.63, 20.00, 24.76, 8.99, 7.55, 8.15];  % Gln CV
+% ----- Updated Monte Carlo CV Data (in % but input as raw values) -----
+cv_glu    = [22.03, 24.01, 24.61, 15.78, 7.94, 20.68, 25.52, 12.32, 22.90, 7.69, 6.95, 6.89];  % Glu CV
+cv_gln    = [64.42, 57.76, 58.42, 53.02, 26.17, 69.51, 66.73, 47.42, 56.58, 26.67, 24.01, 23.52];  % Gln CV
 
 % ----- Updated SNR Data -----
-snr_glu   = [2.26, 1.70, 3.71, 3.05, 4.58, 0.80, 2.54, 5.79, 0.95, 5.69, 7.67, 6.81]; % Glu SNR
-snr_gln   = [2.79, 2.22, 2.22, 1.05, 1.54, 2.04, 1.81, 2.03, 0.96, 1.85, 3.27, 2.70];  % Gln SNR
+snr_glu   = [1.10, 0.57, 1.30, 3.02, 2.29, 1.73, 1.02, 2.01, 1.97, 2.24, 3.48, 2.49]; % Glu SNR
+snr_gln   = [1.39, 1.95, 2.19, 1.17, 1.00, 1.07, 1.46, 1.66, 2.40, 3.09, 2.15, 1.17];  % Gln SNR
 
 % ----- Plot CRLB -----
 figure;
 bar([crlb_glu; crlb_gln]', 'grouped');
 title('CRLB Comparison for All TE Combinations', 'FontSize', 16, 'FontWeight', 'bold');
-ylabel('CRLB', 'FontSize', 16);
+ylabel('CRLB (%)', 'FontSize', 16);
 set(gca, 'XTickLabel', sets, 'FontSize', 14, 'XTickLabelRotation', 45);
 legend({'Glu', 'Gln'}, 'Location', 'northeast', 'FontSize', 14);
 grid on;
@@ -351,7 +350,7 @@ grid on;
 figure;
 bar([cv_glu; cv_gln]', 'grouped');
 title('Monte Carlo Coefficient of Variation for All TE Combinations', 'FontSize', 16, 'FontWeight', 'bold');
-ylabel('Coefficient of Variation', 'FontSize', 16);
+ylabel('Coefficient of Variation (%)', 'FontSize', 16);
 set(gca, 'XTickLabel', sets, 'FontSize', 14, 'XTickLabelRotation', 45);
 legend({'Glu', 'Gln'}, 'Location', 'northeast', 'FontSize', 14);
 grid on;
